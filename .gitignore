@@ -1,0 +1,27 @@
+# Clojure CLI and local tooling
+.cpcache/
+.clj-kondo/.cache/
+.nrepl-port
+
+# Build output and packaged artifacts
+target/
+classes/
+out/
+*.class
+*.jar
+
+# IntelliJ IDEA and other IDE metadata
+.idea/
+*.iml
+.project
+.settings/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Operating-system files
+.DS_Store
+Thumbs.db
