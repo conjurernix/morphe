@@ -1,0 +1,36 @@
+# Morphe
+
+> Morphe is a functional, engine-agnostic Entity Component System for Clojure. Worlds are immutable data, systems are ordered transformations, and each step returns a new world with transient events.
+
+Morphe is a small ECS library for deterministic simulations and games. Keep simulation state in plain Clojure data and keep rendering, input, audio, and game-loop concerns in adapters.
+
+## Getting started
+
+- [README](README.md): Project overview, core usage examples, module commands, and adapters.
+- [Design document](docs/DESIGN.md): Architectural goals, constraints, core concepts, and non-goals.
+- [Full LLM context](llms-full.txt): Expanded guide to the public API, execution model, adapters, and examples.
+
+## Core API
+
+- [Core module](modules/core): Engine-agnostic ECS source, tests, benchmark, and `deps.edn`.
+- [Core facade](modules/core/src/morphe/core.clj): Public functions for worlds, entities, components, resources, commands, events, and stepping runtimes.
+- [Systems](modules/core/src/morphe/system.clj): Entity systems, world systems, command systems, system metadata, and execution protocols.
+- [Runtime](modules/core/src/morphe/runtime.clj): Ordered command and executable system processing.
+- [Queries](modules/core/src/morphe/query.clj): Required, optional, and excluded component query clauses.
+- [Components](modules/core/src/morphe/component.clj): Immutable component storage and entity component operations.
+- [World](modules/core/src/morphe/world.clj): World data shape and component-store helpers.
+- [2D components](modules/core/src/morphe/components/2d.clj): Position, velocity, acceleration, scale, rotation, and transform data.
+
+## Adapters and examples
+
+- [Quil module](modules/quil): Quil adapter, tests, and its own `deps.edn`.
+- [Quil adapter](modules/quil/src/morphe/adapters/quil.clj): Optional window loop, shape and sprite rendering, held-key tracking, and post-render overlays.
+- [LWJGL module](modules/lwjgl): LWJGL adapter, tests, native aliases, and its own `deps.edn`.
+- [LWJGL adapter](modules/lwjgl/src/morphe/adapters/lwjgl.clj): GLFW loop, OpenGL rendering, texture loading, and basic 3D cubes.
+- [Platformer example](examples/platformer/README.md): Standalone one-screen game showing input commands, physics, collisions, resources, and Quil rendering.
+
+## Development
+
+- [Module dependency configurations](modules): Each module owns its Clojure dependencies and test aliases.
+- [Core tests](modules/core/test/morphe/test_runner.clj): Core test entry point and test namespaces.
+- [Platformer dependencies](examples/platformer/deps.edn): Independent example project configuration.

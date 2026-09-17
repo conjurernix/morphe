@@ -1,0 +1,172 @@
+# Morphe
+
+> Morphe is a functional, engine-agnostic Entity Component System for Clojure. Its public model is immutable world data transformed by ordered systems.
+
+## Purpose
+
+Morphe provides the state and execution model for a game or simulation. It does not try to be a complete game engine. Rendering, physics libraries, input devices, audio, windowing, asset loading, and the outer game loop belong at adapter boundaries.
+
+The central operation is:
+
+```clojure
+(morphe.core/step runtime world dt commands)
+```
+
+It returns a map containing the next `:world` and transient `:events`. Given deterministic systems, the same world, commands, and timestep produce the same result.
+
+Canonical architecture details live in [docs/DESIGN.md](docs/DESIGN.md).
+
+## Quickstart
+
+The repository uses independent Clojure CLI projects under `modules/`:
+
+```sh
+cd modules/core
+clojure -M:test
+```
+
+The Quil module tests use:
+
+```sh
+cd modules/quil
+clojure -M:test
+```
+
+The LWJGL module tests use `clojure -M:test` with `-M:macos-arm64`, `-M:linux`, or `-M:windows` for native
+artifacts. The repository root is a workspace coordinator and has no runtime dependency configuration.
+
+The root build configuration is build-only. Use `clojure -T:build ci :version '"0.1.0-test"'` for the local pipeline,
+`clojure -T:build jar` for lockstep module JARs, and `clojure -T:build deploy` for Clojars deployment.
+
+The standalone platformer uses its own dependency project:
+
+```sh
+cd examples/platformer
+clojure -M:run
+clojure -M:test
+```
+
+## World and entities
+
+`morphe.core/world` creates an immutable world containing entity IDs, component stores, and resources. An entity is only an identity. It has no behavior and can be represented as a generated integer.
+
+Spawn an entity with component data:
+
+```clojure
+(let [[world player]
+      (morphe.core/spawn
+        (morphe.core/world)
+        {morphe.components.2d/position-key
+         (morphe.components.2d/position 0.0 0.0)})]
+  ...)
+```
+
+Use `component`, `has-component?`, `add-component`, `set-component`, `update-component`, `remove-component`, and `destroy` through [morphe.core](modules/core/src/morphe/core.clj). Component writes return new worlds and reject dead entities.
+
+Components are plain data stored under namespaced keywords. Component fields should also be namespaced by the component namespace. The built-in 2D component namespace defines position, velocity, acceleration, scale, rotation, and transform constructors in [components/2d.clj](modules/core/src/morphe/components/2d.clj).
+
+Resources hold world-level data shared by systems. Use `get-resource`, `set-resource`, `update-resource`, and `remove-resource` for data such as input state, score, or simulation configuration.
+
+## Queries
+
+Queries select entities by component presence. Build them with [morphe.query/all](modules/core/src/morphe/query.clj):
+
+```clojure
+(q/all c2d/position-key c2d/velocity-key)
+```
+
+`query/all` supports required component keywords plus `query/optional` and `query/without` clauses. `query/query` returns matching entity IDs in sorted order. Queries inspect component presence, not component values.
+
+## Systems
+
+Systems are protocol-backed executable values defined in [morphe.system](modules/core/src/morphe/system.clj).
+
+- `entity-system` runs an operation for each entity matching a query. Its operation receives `world`, `entity`, and `dt`.
+- `system` runs one world-level operation. Use it for aggregation, resource updates, collision passes, or rules involving multiple entities.
+- `command-system` handles selected command types before ordinary systems run.
+
+An operation may return either a world or `{:world next-world :events events}`. Events are normalized into a vector and remain transient output from that step. Systems should keep pure data transformation separate from external effects.
+
+System metadata can declare reads, writes, resource dependencies, and ordering constraints. The current runtime preserves the configured vector order; the `before` and `after` metadata records intent for scheduling and inspection.
+
+## Commands and events
+
+Commands are explicit input to a step. Create them with `morphe.core/command`:
+
+```clojure
+(ecs/command :game/move-forward {:entity player})
+```
+
+Command types must be keywords and payloads must be maps. A command system declares the command types it handles. This keeps external input at the edge and lets the simulation remain testable without a device or window.
+
+Events are transient step results:
+
+```clojure
+(ecs/event :game/entity-defeated {:entity enemy})
+```
+
+Consumers such as audio, effects, or logging should process events outside the core world transformation. Events are not automatically stored in the next world.
+
+## Runtime execution
+
+[morphe.runtime/runtime](modules/core/src/morphe/runtime.clj) accepts either a vector of ordinary systems or a map with `:command-systems` and `:systems`:
+
+```clojure
+(def runtime
+  (runtime/runtime
+    {:command-systems [apply-input]
+     :systems [movement collision]}))
+```
+
+`morphe.runtime/step` normalizes commands, processes every command system in order, then executes every ordinary system in order. Each system receives the world returned by the previous one. Ordering is behavior: movement must precede collision if collision should observe the new position.
+
+## Engine boundary
+
+The core namespaces do not depend on Quil or another renderer. An adapter consumes the world and translates external input into commands.
+
+[morphe.adapters.quil](modules/quil/src/morphe/adapters/quil.clj) is an optional adapter in the Quil module that provides:
+
+- A Quil window and frame loop.
+- Held-key tracking as immutable data passed to `:command-fn`.
+- Shape and sprite rendering from render-owned components.
+- Asset loading from an explicit asset map.
+- An optional `:overlay-fn` called after world rendering for text or HUD elements.
+
+Start it with `quil/start!`, passing `:runtime`, `:world`, and optionally `:width`, `:height`, `:background`, `:assets`, `:command-fn`, `:event-fn`, and `:overlay-fn`.
+
+[morphe.adapters.lwjgl](modules/lwjgl/src/morphe/adapters/lwjgl.clj) is an optional LWJGL 3 adapter in its own module. It provides a GLFW loop,
+held-key polling, OpenGL 3.3 rendering for shared 2D shape/sprite data, and basic colored 3D cubes. Use
+`morphe.components.render-2d` and `morphe.components.render-3d` for render data that stays independent of Quil.
+The [LWJGL example](examples/lwjgl) demonstrates both dimensions.
+
+## Platformer example
+
+The [platformer README](examples/platformer/README.md) documents a complete small game. Its [game namespace](examples/platformer/src/platformer/game.clj) demonstrates:
+
+- Marker components for players, platforms, coins, enemies, and goals.
+- A normalized input command stored as a resource.
+- Direct horizontal movement, gravity, jumping, and axis-aligned platform landing.
+- Coin collection and score updates through entity destruction and resource updates.
+- Enemy patrol, falling, goal detection, win/loss phases, and immutable restart by replacing the world.
+
+The example keeps simulation logic independent from the Quil window. Its tests call `morphe.core/step` directly and inspect the returned world. The executable test entry point is [platformer.test-runner](examples/platformer/src/platformer/test_runner.clj).
+
+## Design constraints
+
+When extending Morphe, preserve these constraints from [docs/DESIGN.md](docs/DESIGN.md):
+
+- Keep persistent game state immutable and use plain Clojure data.
+- Keep engine-specific concerns out of the core namespaces.
+- Make time, randomness, and external input explicit resources or step inputs.
+- Preserve old world snapshots after later transformations.
+- Prefer simple data-oriented operations without sacrificing functional semantics.
+- Add performance optimizations only when measurements justify them.
+
+## Source map
+
+- [Core module](modules/core)
+- [Quil module](modules/quil)
+- [LWJGL module](modules/lwjgl)
+- [Core tests](modules/core/test/morphe)
+- [Platformer example](examples/platformer)
+- [LWJGL example](examples/lwjgl)

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BuildSystemProperties">
+    <option name="modules">
+      <map>
+        <entry key="core">
+          <value>
+            <ModuleState>
+              <option name="buildSystemId" value="CLOJURE_DEPS" />
+              <option name="displayName" value="core" />
+            </ModuleState>
+          </value>
+        </entry>
+        <entry key="examples-lwjgl">
+          <value>
+            <ModuleState>
+              <option name="buildSystemId" value="CLOJURE_DEPS" />
+              <option name="displayName" value="examples-lwjgl" />
+            </ModuleState>
+          </value>
+        </entry>
+        <entry key="modules-lwjgl">
+          <value>
+            <ModuleState>
+              <option name="buildSystemId" value="CLOJURE_DEPS" />
+              <option name="displayName" value="modules-lwjgl" />
+            </ModuleState>
+          </value>
+        </entry>
+        <entry key="platformer">
+          <value>
+            <ModuleState>
+              <option name="buildSystemId" value="CLOJURE_DEPS" />
+              <option name="displayName" value="platformer" />
+            </ModuleState>
+          </value>
+        </entry>
+        <entry key="quil">
+          <value>
+            <ModuleState>
+              <option name="buildSystemId" value="CLOJURE_DEPS" />
+              <option name="displayName" value="quil" />
+            </ModuleState>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

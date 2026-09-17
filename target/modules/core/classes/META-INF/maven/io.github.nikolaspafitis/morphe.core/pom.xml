@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <packaging>jar</packaging>
+  <groupId>io.github.nikolaspafitis</groupId>
+  <artifactId>morphe.core</artifactId>
+  <version>0.1.0-ci</version>
+  <name>morphe.core</name>
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>1.12.5</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <sourceDirectory>modules/core/src</sourceDirectory>
+  </build>
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org/</url>
+    </repository>
+  </repositories>
+  <scm>
+    <tag>v0.1.0-ci</tag>
+    <url>https://github.com/nikolaspafitis/morphe</url>
+  </scm>
+  <description>Declarative, purely functional Entity Component System for Clojure</description>
+  <url>https://github.com/nikolaspafitis/morphe</url>
+  <licenses>
+    <license>
+      <name>Eclipse Public License 1.0</name>
+      <url>https://opensource.org/license/epl-1-0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+</project>

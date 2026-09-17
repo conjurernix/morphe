@@ -1,0 +1,22 @@
+{:paths ["src"]
+ :deps {morphe/core {:local/root "../core"}
+        org.lwjgl/lwjgl {:mvn/version "3.4.3"}
+        org.lwjgl/lwjgl-glfw {:mvn/version "3.4.3"}
+        org.lwjgl/lwjgl-opengl {:mvn/version "3.4.3"}
+        org.lwjgl/lwjgl-stb {:mvn/version "3.4.3"}}
+ :aliases
+ {:test {:extra-paths ["test"]
+         :main-opts ["-m" "morphe.lwjgl-test-runner"]}
+  :macos-arm64 {:extra-deps {org.lwjgl/lwjgl$natives-macos-arm64 {:mvn/version "3.4.3"}
+                              org.lwjgl/lwjgl-glfw$natives-macos-arm64 {:mvn/version "3.4.3"}
+                              org.lwjgl/lwjgl-opengl$natives-macos-arm64 {:mvn/version "3.4.3"}
+                              org.lwjgl/lwjgl-stb$natives-macos-arm64 {:mvn/version "3.4.3"}}
+                :jvm-opts ["-XstartOnFirstThread" "--enable-native-access=ALL-UNNAMED"]}
+  :linux {:extra-deps {org.lwjgl/lwjgl$natives-linux {:mvn/version "3.4.3"}
+                       org.lwjgl/lwjgl-glfw$natives-linux {:mvn/version "3.4.3"}
+                       org.lwjgl/lwjgl-opengl$natives-linux {:mvn/version "3.4.3"}
+                       org.lwjgl/lwjgl-stb$natives-linux {:mvn/version "3.4.3"}}}
+  :windows {:extra-deps {org.lwjgl/lwjgl$natives-windows {:mvn/version "3.4.3"}
+                         org.lwjgl/lwjgl-glfw$natives-windows {:mvn/version "3.4.3"}
+                         org.lwjgl/lwjgl-opengl$natives-windows {:mvn/version "3.4.3"}
+                         org.lwjgl/lwjgl-stb$natives-windows {:mvn/version "3.4.3"}}}}}

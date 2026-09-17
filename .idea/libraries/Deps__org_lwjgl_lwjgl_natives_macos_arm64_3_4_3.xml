@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Deps: org.lwjgl/lwjgl$natives-macos-arm64:3.4.3">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/lwjgl/lwjgl/3.4.3/lwjgl-3.4.3-natives-macos-arm64.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
