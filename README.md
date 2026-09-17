@@ -3,7 +3,8 @@
 Morphe is a functional, engine-agnostic Entity Component System for Clojure. A world is immutable data, systems are
 ordered transformations, and each step returns the next world together with transient events.
 
-For an agent-oriented project map, see [llms.txt](llms.txt). The expanded reference is in [llms-full.txt](llms-full.txt).
+For an agent-oriented project map, see [llms.txt](llms.txt). The expanded reference is
+in [llms-full.txt](llms-full.txt).
 
 ```clojure
 (require '[morphe.components.2d :as c2d]
