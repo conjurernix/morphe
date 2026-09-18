@@ -1,6 +1,0 @@
-{:paths ["src"]
- :deps {morphe/core {:local/root "../core"}
-        quil/quil {:mvn/version "4.3.1563"}}
- :aliases
- {:test {:extra-paths ["test"]
-         :main-opts ["-m" "morphe.quil-test-runner"]}}}

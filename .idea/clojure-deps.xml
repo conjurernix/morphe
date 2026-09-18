@@ -21,6 +21,42 @@
           <option name="type" value="TEST_SOURCE" />
         </FolderState>
         <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/examples/snake-event/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/examples/snake-quil/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/modules/core/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/modules/lwjgl/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/modules/morphe-next-quil/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/modules/morphe-next/benchmark" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/modules/morphe-next/experimental" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/modules/morphe-next/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/modules/quil/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
           <option name="dirUrl" value="file://$PROJECT_DIR$/test" />
           <option name="type" value="TEST_SOURCE" />
         </FolderState>
@@ -28,8 +64,10 @@
     </option>
     <option name="projectFiles">
       <set>
-        <option value="file://$PROJECT_DIR$/examples/lwjgl/deps.edn" />
-        <option value="file://$PROJECT_DIR$/examples/platformer/deps.edn" />
+        <option value="file://$PROJECT_DIR$/deps.edn" />
+        <option value="file://$PROJECT_DIR$/examples/snake-event/deps.edn" />
+        <option value="file://$PROJECT_DIR$/modules/morphe-next-quil/deps.edn" />
+        <option value="file://$PROJECT_DIR$/modules/morphe-next/deps.edn" />
       </set>
     </option>
   </component>

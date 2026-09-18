@@ -6,28 +6,24 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib-modules
-  {:core  {:lib 'io.github.nikolaspafitis/morphe.core
-           :dir "modules/core"
-           :description "Declarative, purely functional Entity Component System for Clojure"}
-   :quil  {:lib 'io.github.nikolaspafitis/morphe.quil
-           :dir "modules/quil"
-           :description "Quil window, input, and 2D rendering adapter for Morphe"}
-   :lwjgl {:lib 'io.github.nikolaspafitis/morphe.lwjgl
-           :dir "modules/lwjgl"
-           :description "LWJGL window, input, 2D, and basic 3D rendering adapter for Morphe"}})
+  {:core {:lib 'io.github.nikolaspafitis/morphe.core
+          :dir "modules/morphe-next"
+          :description "Purely functional, event-driven game state engine for Clojure"}
+   :quil {:lib 'io.github.nikolaspafitis/morphe.quil
+               :dir "modules/morphe-next-quil"
+               :description "Quil adapter for the Morphe game state engine"}})
 
 (def default-all-modules
-  ["modules/core" "modules/quil" "modules/lwjgl"])
+  ["modules/morphe-next" "modules/morphe-next-quil"])
 
 (def local->mvn-internal
-  {'morphe/core  'io.github.nikolaspafitis/morphe.core
-   'morphe/quil  'io.github.nikolaspafitis/morphe.quil
-   'morphe/lwjgl 'io.github.nikolaspafitis/morphe.lwjgl})
+  {'morphe/core 'io.github.nikolaspafitis/morphe.core
+   'morphe/quil 'io.github.nikolaspafitis/morphe.quil})
 
 (defn compute-version
   "Derives a version from the explicit option or the latest Git tag."
-  [opts]
-  (or (:version opts)
+  [{explicit-version :version}]
+  (or explicit-version
       (try
         (let [tag (some-> (b/git-process {:git-args ["describe" "--tags" "--abbrev=0"]})
                           str/trim)
@@ -35,7 +31,7 @@
           (when (and (seq version) (re-find #"^\d+\.\d+" version))
             version))
         (catch Exception _ nil))
-      "0.1.0-SNAPSHOT"))
+      "0.2.0-SNAPSHOT"))
 
 (defn version
   "Prints and returns the current derived or overridden version."
@@ -45,12 +41,14 @@
     value))
 
 (defn- resolve-lib-modules
-  [opts]
-  (let [requested (or (:modules opts) (:submodules opts) (keys lib-modules))]
+  [{:keys [modules submodules]}]
+  (let [requested (or modules submodules (keys lib-modules))]
     (mapv (fn [module]
             (let [key (if (keyword? module)
                         module
-                        (or (some (fn [[key value]] (when (= (:dir value) module) key)) lib-modules)
+                        (or (some (fn [[key {:keys [dir]}]]
+                                    (when (= dir module) key))
+                                  lib-modules)
                             (keyword (str module))))]
               (or (get lib-modules key)
                   (throw (ex-info (str "Unknown Morphe module: " module)
@@ -61,8 +59,8 @@
   [dir version]
   (let [basis (binding [b/*project-root* (b/resolve-path dir)]
                 (b/create-basis {:project "deps.edn"}))]
-    (reduce (fn [current-basis [local-lib published-lib]]
-              (if (contains? (:libs current-basis) local-lib)
+    (reduce (fn [{:keys [libs] :as current-basis} [local-lib published-lib]]
+              (if (contains? libs local-lib)
                 (-> current-basis
                     (update :libs dissoc local-lib)
                     (assoc-in [:libs published-lib] {:mvn/version version}))
@@ -130,19 +128,31 @@
   opts)
 
 (defn example-test
-  "Runs the platformer example tests."
+  "Runs the example test suites."
   [opts]
-  (run-command! "Testing platformer example" "examples/platformer" ["clojure" "-M:test"])
+  (doseq [[label directory] [["event-driven snake" "examples/snake-event"]]]
+    (run-command! (str "Testing " label " example") directory ["clojure" "-M:test"]))
+  opts)
+
+(defn lint
+  "Runs clj-kondo over every shipped source and test tree."
+  [opts]
+  (doseq [[label directory]
+          [["core" "modules/morphe-next"]
+           ["Quil adapter" "modules/morphe-next-quil"]
+           ["Snake example" "examples/snake-event"]]]
+    (run-command! (str "Linting " label) directory
+                  ["clj-kondo" "--lint" "src" "test"]))
   opts)
 
 (defn jar
   "Builds and installs selected module JARs in one version."
   [opts]
   (let [version (compute-version opts)]
-    (doseq [module (resolve-lib-modules opts)]
+    (doseq [{:keys [lib] :as module} (resolve-lib-modules opts)]
       (let [{:keys [class-dir jar-file src-dirs] :as module-opts}
             (jar-opts-for-module module version opts)]
-        (println (str "\n=== Building " (:lib module) " " version " ==="))
+        (println (str "\n=== Building " lib " " version " ==="))
         (b/delete {:path class-dir})
         (b/write-pom module-opts)
         (b/copy-dir {:src-dirs src-dirs :target-dir class-dir})
@@ -158,20 +168,36 @@
   (jar opts)
   opts)
 
+(defn smoke-test
+  "Requires each installed artifact through its published Maven coordinate."
+  [opts]
+  (let [version (compute-version opts)
+        checks [['io.github.nikolaspafitis/morphe.core 'morphe.core]
+                ['io.github.nikolaspafitis/morphe.quil 'morphe.adapters.quil]]]
+    (doseq [[lib namespace] checks]
+      (run-command!
+        (str "Requiring " namespace " from its installed artifact")
+        "."
+        ["clojure"
+         "-Sdeps" (pr-str {:deps {lib {:mvn/version version}}})
+         "-M"
+         "-e" (str "(require '" namespace ")")]))
+    (println "Artifact smoke tests passed."))
+  opts)
+
 (defn deploy
   "Deploys selected module JARs and POMs to Clojars."
   [opts]
   (let [version (compute-version opts)]
     (doseq [module (resolve-lib-modules opts)]
-      (let [{:keys [jar-file class-dir] :as module-opts}
+      (let [{:keys [lib jar-file class-dir]}
             (jar-opts-for-module module version opts)]
         (when-not (.exists (io/file jar-file))
           (throw (ex-info (str "Build the JAR before deploying: " jar-file)
                           {:jar-file jar-file})))
         (dd/deploy {:installer :remote
                     :artifact (b/resolve-path jar-file)
-                    :pom-file (b/pom-path {:lib (:lib module-opts)
-                                           :class-dir class-dir})})))
+                    :pom-file (b/pom-path {:lib lib :class-dir class-dir})})))
     (println "Module deployment complete."))
   opts)
 
@@ -202,7 +228,7 @@
 
 (defn- next-version
   [current bump-type]
-(let [{:keys [major minor patch qualifier qualifier-number]}
+  (let [{:keys [major minor patch qualifier qualifier-number]}
         (or (parse-version current) {:major 0 :minor 1 :patch 0})]
     (format-version
      (case bump-type
@@ -231,13 +257,16 @@
 
 (defn bump
   "Creates a lockstep release tag. Use :dry-run true to preview it."
-  [opts]
+  [{target-version :to
+    explicit-version :version
+    bump-type :type
+    :keys [dry-run]
+    :as opts}]
   (let [current (compute-version {})
-        target (or (:to opts) (:version opts)
-                   (next-version current (or (:type opts) :patch)))
-        dry-run? (:dry-run opts)]
+        target (or target-version explicit-version
+                   (next-version current (or bump-type :patch)))]
     (println (str current " -> " target))
-    (when-not dry-run?
+    (when-not dry-run
       (git-tag! target))
     (assoc opts :version target :previous-version current)))
 
@@ -251,11 +280,13 @@
 (defn bump-snapshot [opts] (bump (assoc opts :type :snapshot)))
 
 (defn ci
-  "Runs layout checks, module tests, example tests, and packaging."
+  "Runs lint, tests, packaging, and package-consumer smoke tests."
   [opts]
   (clean opts)
   (check opts)
+  (lint opts)
   (test opts)
   (example-test opts)
   (jar opts)
+  (smoke-test opts)
   opts)

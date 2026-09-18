@@ -1,0 +1,12 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.5"}}
+ :aliases {:test {:extra-paths ["test" "benchmark"]
+                  :extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}}
+                  :main-opts ["-m" "morphe.test-runner"]}
+           :benchmark
+           {:extra-paths ["benchmark"]
+            :extra-deps
+            {criterium/criterium {:mvn/version "0.4.6"}
+             com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.8.0"}}
+            :jvm-opts ["-Djdk.attach.allowAttachSelf"]
+            :main-opts ["-m" "morphe.benchmark"]}}}

@@ -1,9 +1,0 @@
-{:paths ["src"]
- :deps {morphe/core {:local/root "../../modules/core"}
-        morphe/lwjgl {:local/root "../../modules/lwjgl"}}
- :aliases {:run {:extra-deps {org.lwjgl/lwjgl$natives-macos-arm64 {:mvn/version "3.4.3"}
-                              org.lwjgl/lwjgl-glfw$natives-macos-arm64 {:mvn/version "3.4.3"}
-                              org.lwjgl/lwjgl-opengl$natives-macos-arm64 {:mvn/version "3.4.3"}
-                              org.lwjgl/lwjgl-stb$natives-macos-arm64 {:mvn/version "3.4.3"}}
-              :jvm-opts ["-XstartOnFirstThread" "--enable-native-access=ALL-UNNAMED"]
-              :main-opts ["-m" "lwjgl-example.main"]}}}
