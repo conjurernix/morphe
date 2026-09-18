@@ -56,12 +56,13 @@
   [{:keys [context entities]} entity-id render-context]
   (try
     (entity/render-entity (get entities entity-id) context render-context)
-    (catch clojure.lang.ExceptionInfo cause
+    (catch #?(:clj clojure.lang.ExceptionInfo
+   :cljs cljs.core/ExceptionInfo) cause
       (throw (ex-info (.getMessage cause)
                       (merge (ex-data cause)
                              {:phase :render :entity-id entity-id})
                       cause)))
-    (catch Throwable cause
+    (catch #?(:clj Throwable :cljs :default) cause
       (throw (ex-info "Entity render handler failed"
                       {:phase :render :entity-id entity-id}
                       cause)))))
@@ -116,14 +117,15 @@
             (entity/update-entity current context message)
             next-result (assoc-in result [:game :entities entity-id] updated)]
         (reduce route-output next-result outputs))
-      (catch clojure.lang.ExceptionInfo cause
+      (catch #?(:clj clojure.lang.ExceptionInfo
+   :cljs cljs.core/ExceptionInfo) cause
         (throw (ex-info (.getMessage cause)
                         (merge {:phase :delivery}
                                (ex-data cause)
                                {:entity-id entity-id
                                 :event runtime-event})
                         cause)))
-      (catch Throwable cause
+      (catch #?(:clj Throwable :cljs :default) cause
         (throw (ex-info "Entity handler failed"
                         {:phase :delivery
                          :entity-id entity-id
@@ -158,7 +160,8 @@
   [value]
   (and (number? value)
        (not (neg? value))
-       (Double/isFinite (double value))))
+       #?(:clj (Double/isFinite (double value))
+          :cljs (js/Number.isFinite value))))
 
 (defn- validate-event!
   [runtime-event data]
@@ -199,7 +202,8 @@
                                external-events
                                (range))
          source-events (source-events game sources dt)
-         queue (into clojure.lang.PersistentQueue/EMPTY
+         queue (into #?(:clj clojure.lang.PersistentQueue/EMPTY
+                           :cljs cljs.core/PersistentQueue.EMPTY)
                      (concat external-events source-events))]
      (drain {:game game :queue queue :effects []} max-events))))
 

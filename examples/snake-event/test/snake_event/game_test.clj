@@ -19,6 +19,10 @@
     (is (= [0 0] (food/position state)))
     (is (= 0 (snake-game/score state)))))
 
+(deftest calculates-frames-per-second
+  (is (= 10.0 (loop/frames-per-second 0.1)))
+  (is (= 0.0 (loop/frames-per-second 0.0))))
+
 (deftest render-data-contains-food-and-snake-segments
   (let [render-data (game/render-data (create-game) {:camera :main})]
     (is (= 4 (count render-data)))
@@ -97,6 +101,10 @@
           (game/event food/id [::food/restart snake/id
                                board/initial-snake-cells])]
          (loop/input-events nil #{:r}))))
+
+(deftest queued-input-is-handled-without-a-held-key
+  (is (= [(game/event snake/id [::snake/turn :right])]
+         (loop/input-events nil #{} [:d]))))
 
 (deftest restart-chooses-an-available-tile-and-syncs-snake
   (let [calls (atom 0)

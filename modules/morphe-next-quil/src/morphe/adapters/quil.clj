@@ -4,7 +4,9 @@
 
 (defn press-key
   [state key]
-  (update state :pressed-keys conj key))
+  (-> state
+      (update :pressed-keys conj key)
+      (update :key-events (fnil conj []) key)))
 
 (defn release-key
   [state key]
@@ -79,7 +81,9 @@
 
 (defn start!
   "Runs a Quil loop over immutable game state.
-  :input-fn returns events and :effect-handlers executes effects."
+  :input-fn receives game state, pressed keys, and queued key presses;
+  :overlay-fn receives game state, pressed keys, effects, and frame dt;
+  :effect-handlers executes effects."
   [{:keys [game-state sources width height title background assets frame-rate input-fn
            render-context overlay-fn event-fn effect-handlers]
     :or {width 800
@@ -89,12 +93,16 @@
          assets {}
          sources []
          frame-rate 60.0
-         input-fn (fn [_ _] [])
+         input-fn (fn [_ _ _] [])
          render-context {}
          effect-handlers {}}}]
   (when-not (fn? input-fn)
     (throw (ex-info "Quil adapter :input-fn must be a function" {})))
-  (let [state (atom {:game game-state :pressed-keys #{} :assets {} :last-time nil})]
+  (let [state (atom {:game game-state
+                     :pressed-keys #{}
+                     :key-events []
+                     :assets {}
+                     :last-time nil})]
     (q/sketch
       :title title
       :size [width height]
@@ -107,18 +115,19 @@
       :key-released (fn []
                       (swap! state release-key (q/key-as-keyword)))
       :draw (fn []
-              (let [{game-state :game :keys [pressed-keys assets last-time]} @state
+              (let [[{:keys [game pressed-keys key-events assets last-time]} _]
+                    (swap-vals! state #(assoc % :key-events []))
                     current-time (q/millis)
                     dt (if last-time
                          (/ (- current-time last-time) 1000.0)
                          (/ 1.0 frame-rate))
                     {next-game :game :keys [effects] :as result}
-                    (game/step game-state sources dt
-                               (input-fn game-state pressed-keys))]
+                    (game/step game sources dt
+                               (input-fn game pressed-keys key-events))]
                 (apply q/background background)
                 (render-game! next-game assets render-context)
                 (when overlay-fn
-                  (overlay-fn next-game pressed-keys effects))
+                  (overlay-fn next-game pressed-keys effects dt))
                 (when (seq effects)
                   (game/dispatch-effects! effect-handlers effects))
                 (swap! state assoc :game next-game :last-time current-time)

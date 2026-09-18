@@ -1,6 +1,6 @@
 (ns morphe.internal.entity)
 
-(def ^:private MISSING (Object.))
+(def ^:private MISSING #?(:clj (Object.) :cljs (js-obj)))
 
 (defrecord ComponentDescriptor [key handler])
 (defrecord EntityDescriptor
@@ -12,7 +12,8 @@
 
 (defn- handler?
   [value]
-  (or (fn? value) (instance? clojure.lang.MultiFn value)))
+  #?(:clj (or (fn? value) (instance? clojure.lang.MultiFn value))
+     :cljs (fn? value)))
 
 (defn- changed?
   [before after key]

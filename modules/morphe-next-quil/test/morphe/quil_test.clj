@@ -11,7 +11,9 @@
         {released-keys :pressed-keys} released]
     (is (= #{} initial-keys))
     (is (= #{:w} pressed-keys))
-    (is (= #{} released-keys))))
+    (is (= #{} released-keys))
+    (is (= [:w] (:key-events pressed)))
+    (is (= [:w] (:key-events released)))))
 
 (deftest render-descriptors-are-data
   (testing "shapes"

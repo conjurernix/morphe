@@ -9,19 +9,22 @@
             [snake-event.snake :as snake]))
 
 (defn input-events
-  [_game-state pressed-keys]
-  (let [direction (some (fn [[key-set direction]]
-                          (when (some pressed-keys key-set) direction))
-                        [[#{:up :w} :up]
-                         [#{:down :s} :down]
-                         [#{:left :a} :left]
-                         [#{:right :d} :right]])]
-    (cond-> []
-      direction (conj (game/event snake/id [::snake/turn direction]))
-      (contains? pressed-keys :r)
-      (into [(game/event snake/id [::snake/restart])
-             (game/event food/id [::food/restart snake/id
-                                  board/initial-snake-cells])]))))
+  ([_game-state pressed-keys]
+   (input-events _game-state pressed-keys []))
+  ([_game-state pressed-keys key-events]
+   (let [active-keys (into pressed-keys key-events)
+         direction (some (fn [[key-set direction]]
+                           (when (some active-keys key-set) direction))
+                         [[#{:up :w} :up]
+                          [#{:down :s} :down]
+                          [#{:left :a} :left]
+                          [#{:right :d} :right]])]
+     (cond-> []
+       direction (conj (game/event snake/id [::snake/turn direction]))
+       (contains? active-keys :r)
+       (into [(game/event snake/id [::snake/restart])
+              (game/event food/id [::food/restart snake/id
+                                   board/initial-snake-cells])])))))
 
 (defn tick-source
   [_context _dt]
@@ -31,14 +34,19 @@
   [{:keys [columns rows]} cell-size]
   [(* columns cell-size) (* rows cell-size)])
 
+(defn frames-per-second
+  [dt]
+  (if (pos? dt) (/ 1.0 dt) 0.0))
+
 (defn overlay!
-  [game-state _pressed-keys _effects]
+  [game-state _pressed-keys _effects dt]
   (let [{:keys [phase]} (snake-game/snake-state game-state)
         [width height] (board-size board/grid board/cell-size)]
     (q/fill 255 255 255)
     (q/text-align :left :top)
     (q/text-size 18)
     (q/text (str "Score: " (snake-game/score game-state)) 12 12)
+    (q/text (format "FPS: %.1f" (frames-per-second dt)) 12 36)
     (when (not= phase :playing)
       (q/text-align :center :center)
       (q/text-size 32)
