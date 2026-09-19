@@ -3,14 +3,6 @@
   <component name="BuildSystemProperties">
     <option name="modules">
       <map>
-        <entry key="morphe">
-          <value>
-            <ModuleState>
-              <option name="buildSystemId" value="CLOJURE_DEPS" />
-              <option name="displayName" value="morphe" />
-            </ModuleState>
-          </value>
-        </entry>
         <entry key="morphe-next">
           <value>
             <ModuleState>
@@ -19,19 +11,19 @@
             </ModuleState>
           </value>
         </entry>
-        <entry key="morphe-next-quil">
+        <entry key="morphe-next-lwjgl">
           <value>
             <ModuleState>
               <option name="buildSystemId" value="CLOJURE_DEPS" />
-              <option name="displayName" value="morphe-next-quil" />
+              <option name="displayName" value="morphe-next-lwjgl" />
             </ModuleState>
           </value>
         </entry>
-        <entry key="snake-event">
+        <entry key="platformer-lwjgl">
           <value>
             <ModuleState>
               <option name="buildSystemId" value="CLOJURE_DEPS" />
-              <option name="displayName" value="snake-event" />
+              <option name="displayName" value="platformer-lwjgl" />
             </ModuleState>
           </value>
         </entry>

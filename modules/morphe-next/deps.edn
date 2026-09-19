@@ -3,6 +3,11 @@
  :aliases {:test {:extra-paths ["test" "benchmark"]
                   :extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}}
                   :main-opts ["-m" "morphe.test-runner"]}
+           :test-cljs
+           {:extra-paths ["test"]
+            :extra-deps {org.clojure/clojurescript {:mvn/version "1.12.145"}}
+            :main-opts ["-m" "cljs.main" "-re" "node"
+                        "-m" "morphe.random-cljs-test"]}
            :benchmark
            {:extra-paths ["benchmark"]
             :extra-deps

@@ -2,7 +2,7 @@
 
 ## Source map
 
-- `modules/morphe-next/src/morphe/core.clj`: documented public API.
+- `modules/morphe-next/src/morphe/core.cljc`: documented public API.
 - `modules/morphe-next/src/morphe/internal/`: entity, event, and runtime implementation.
 - `modules/morphe-next/test/morphe/`: runtime contract and property tests.
 - `modules/morphe-next-quil/src/morphe/adapters/quil.clj`: Quil adapter.

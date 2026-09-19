@@ -11,14 +11,18 @@
           :description "Purely functional, event-driven game state engine for Clojure"}
    :quil {:lib 'io.github.nikolaspafitis/morphe.quil
                :dir "modules/morphe-next-quil"
-               :description "Quil adapter for the Morphe game state engine"}})
+               :description "Quil adapter for the Morphe game state engine"}
+   :lwjgl {:lib 'io.github.nikolaspafitis/morphe.lwjgl
+           :dir "modules/morphe-next-lwjgl"
+           :description "LWJGL adapter for the Morphe game state engine"}})
 
 (def default-all-modules
-  ["modules/morphe-next" "modules/morphe-next-quil"])
+  ["modules/morphe-next" "modules/morphe-next-quil" "modules/morphe-next-lwjgl"])
 
 (def local->mvn-internal
   {'morphe/core 'io.github.nikolaspafitis/morphe.core
-   'morphe/quil 'io.github.nikolaspafitis/morphe.quil})
+   'morphe/quil 'io.github.nikolaspafitis/morphe.quil
+   'morphe/lwjgl 'io.github.nikolaspafitis/morphe.lwjgl})
 
 (defn compute-version
   "Derives a version from the explicit option or the latest Git tag."
@@ -123,8 +127,13 @@
 (defn test
   "Runs the test suite in each selected library module."
   [opts]
-  (doseq [{:keys [dir]} (resolve-lib-modules opts)]
-    (run-command! "Testing" dir ["clojure" "-M:test"]))
+  (let [modules (resolve-lib-modules opts)]
+    (doseq [{:keys [dir]} modules]
+      (run-command! "Testing" dir ["clojure" "-M:test"]))
+    (when (some #(= "modules/morphe-next" (:dir %)) modules)
+      (run-command! "Testing ClojureScript runtime"
+                    "modules/morphe-next"
+                    ["clojure" "-M:test-cljs"])))
   opts)
 
 (defn example-test
@@ -132,15 +141,19 @@
   [opts]
   (doseq [[label directory] [["event-driven snake" "examples/snake-event"]]]
     (run-command! (str "Testing " label " example") directory ["clojure" "-M:test"]))
+  (run-command! "Testing platformer example" "examples/platformer-lwjgl"
+                ["clojure" "-M:test"])
   opts)
 
 (defn lint
   "Runs clj-kondo over every shipped source and test tree."
   [opts]
   (doseq [[label directory]
-          [["core" "modules/morphe-next"]
+           [["core" "modules/morphe-next"]
            ["Quil adapter" "modules/morphe-next-quil"]
-           ["Snake example" "examples/snake-event"]]]
+           ["LWJGL adapter" "modules/morphe-next-lwjgl"]
+           ["Snake example" "examples/snake-event"]
+           ["Platformer example" "examples/platformer-lwjgl"]]]
     (run-command! (str "Linting " label) directory
                   ["clj-kondo" "--lint" "src" "test"]))
   opts)
@@ -173,12 +186,14 @@
   [opts]
   (let [version (compute-version opts)
         checks [['io.github.nikolaspafitis/morphe.core 'morphe.core]
-                ['io.github.nikolaspafitis/morphe.quil 'morphe.adapters.quil]]]
+                ['io.github.nikolaspafitis/morphe.quil 'morphe.adapters.quil]
+                ['io.github.nikolaspafitis/morphe.lwjgl 'morphe.adapters.lwjgl]]]
     (doseq [[lib namespace] checks]
       (run-command!
         (str "Requiring " namespace " from its installed artifact")
         "."
         ["clojure"
+         "-Sforce"
          "-Sdeps" (pr-str {:deps {lib {:mvn/version version}}})
          "-M"
          "-e" (str "(require '" namespace ")")]))

@@ -2,10 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/morphe.iml" filepath="$PROJECT_DIR$/morphe.iml" />
       <module fileurl="file://$PROJECT_DIR$/modules/morphe-next/morphe-next.iml" filepath="$PROJECT_DIR$/modules/morphe-next/morphe-next.iml" />
-      <module fileurl="file://$PROJECT_DIR$/modules/morphe-next-quil/morphe-next-quil.iml" filepath="$PROJECT_DIR$/modules/morphe-next-quil/morphe-next-quil.iml" />
-      <module fileurl="file://$PROJECT_DIR$/examples/snake-event/snake-event.iml" filepath="$PROJECT_DIR$/examples/snake-event/snake-event.iml" />
+      <module fileurl="file://$PROJECT_DIR$/modules/morphe-next-lwjgl/morphe-next-lwjgl.iml" filepath="$PROJECT_DIR$/modules/morphe-next-lwjgl/morphe-next-lwjgl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/examples/platformer-lwjgl/platformer-lwjgl.iml" filepath="$PROJECT_DIR$/examples/platformer-lwjgl/platformer-lwjgl.iml" />
     </modules>
   </component>
 </project>

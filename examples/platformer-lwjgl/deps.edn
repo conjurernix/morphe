@@ -1,0 +1,13 @@
+{:paths ["src"]
+ :deps {morphe/core {:local/root "../../modules/morphe-next"}
+        morphe/lwjgl {:local/root "../../modules/morphe-next-lwjgl"}}
+ :aliases {:run {:jvm-opts ["-XstartOnFirstThread"
+                            "--enable-native-access=ALL-UNNAMED"]
+                 :extra-deps {org.lwjgl/lwjgl$natives-macos-arm64 {:mvn/version "3.4.3"}
+                              org.lwjgl/lwjgl-openal$natives-macos-arm64 {:mvn/version "3.4.3"}
+                              org.lwjgl/lwjgl-glfw$natives-macos-arm64 {:mvn/version "3.4.3"}
+                              org.lwjgl/lwjgl-opengl$natives-macos-arm64 {:mvn/version "3.4.3"}
+                              org.lwjgl/lwjgl-stb$natives-macos-arm64 {:mvn/version "3.4.3"}}
+                  :main-opts ["-m" "platformer.main"]}
+           :test {:extra-paths ["test"]
+                  :main-opts ["-m" "platformer.test-runner"]}}}

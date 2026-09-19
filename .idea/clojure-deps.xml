@@ -17,6 +17,10 @@
     <option name="dirTypeMappings">
       <set>
         <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/examples/platformer-lwjgl/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
           <option name="dirUrl" value="file://$PROJECT_DIR$/examples/platformer/test" />
           <option name="type" value="TEST_SOURCE" />
         </FolderState>
@@ -34,6 +38,10 @@
         </FolderState>
         <FolderState>
           <option name="dirUrl" value="file://$PROJECT_DIR$/modules/lwjgl/test" />
+          <option name="type" value="TEST_SOURCE" />
+        </FolderState>
+        <FolderState>
+          <option name="dirUrl" value="file://$PROJECT_DIR$/modules/morphe-next-lwjgl/test" />
           <option name="type" value="TEST_SOURCE" />
         </FolderState>
         <FolderState>
@@ -64,10 +72,8 @@
     </option>
     <option name="projectFiles">
       <set>
-        <option value="file://$PROJECT_DIR$/deps.edn" />
-        <option value="file://$PROJECT_DIR$/examples/snake-event/deps.edn" />
-        <option value="file://$PROJECT_DIR$/modules/morphe-next-quil/deps.edn" />
-        <option value="file://$PROJECT_DIR$/modules/morphe-next/deps.edn" />
+        <option value="file://$PROJECT_DIR$/examples/platformer-lwjgl/deps.edn" />
+        <option value="file://$PROJECT_DIR$/modules/morphe-next-lwjgl/deps.edn" />
       </set>
     </option>
   </component>

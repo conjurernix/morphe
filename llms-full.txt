@@ -2,7 +2,7 @@
 
 ## Public API
 
-Require `morphe.core`. Its public functions are `game`, `entity`, `component`, `add-entity`, `get-entity`, `entity-state`, `entity-components`, `event`, `send`, `broadcast`, `effect`, `step`, `render-data`, and `dispatch-effects!`.
+Require `morphe.core`. It exposes game and entity construction, lifecycle and context operations, FIFO events, structural commands, render data, effects, and typed snapshots. Read its public docstrings for exact argument lists.
 
 Games are immutable maps with context, an entity registry, and entity insertion order. Entity IDs are non-nil immutable Clojure values.
 

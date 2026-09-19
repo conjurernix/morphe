@@ -4,7 +4,7 @@
 
 (defrecord ComponentDescriptor [key handler])
 (defrecord EntityDescriptor
-  [state components handler render-handler owned-keys])
+  [type state components handler render-handler owned-keys])
 
 (defn- fail!
   [message data]
@@ -86,25 +86,40 @@
     (fail! "Component handlers must be functions" {:key key :value handler}))
   (->ComponentDescriptor key handler))
 
+(defn- create-entity
+  [type state components handler render-handler]
+  (when (and (some? type)
+             (not (or (keyword? type) (symbol? type) (string? type))))
+     (fail! "Entity types must be keywords, symbols, or strings" {:type type}))
+  (when-not (map? state)
+    (fail! "Entity state must be a map" {:value state}))
+  (when-not (sequential? components)
+    (fail! "Entity components must be sequential" {:value components}))
+  (when-not (every? component? components)
+    (fail! "Entity components must be created with component" {:value components}))
+  (when-not (handler? handler)
+    (fail! "Entity update handler must be a function" {:value handler}))
+  (when (and render-handler (not (handler? render-handler)))
+    (fail! "Entity render handler must be a function" {:value render-handler}))
+  (let [components (vec components)
+        keys (mapv component-key components)]
+    (when-not (= (count keys) (count (distinct keys)))
+      (fail! "Entity component keys must be unique" {:component-keys keys}))
+    (->EntityDescriptor type state components handler render-handler (set keys))))
+
 (defn entity
   ([state components handler]
    (entity state components handler nil))
   ([state components handler render-handler]
-   (when-not (map? state)
-     (fail! "Entity state must be a map" {:value state}))
-   (when-not (sequential? components)
-     (fail! "Entity components must be sequential" {:value components}))
-   (when-not (every? component? components)
-     (fail! "Entity components must be created with component" {:value components}))
-   (when-not (handler? handler)
-     (fail! "Entity update handler must be a function" {:value handler}))
-   (when (and render-handler (not (handler? render-handler)))
-     (fail! "Entity render handler must be a function" {:value render-handler}))
-   (let [components (vec components)
-         keys (mapv component-key components)]
-     (when-not (= (count keys) (count (distinct keys)))
-       (fail! "Entity component keys must be unique" {:component-keys keys}))
-     (->EntityDescriptor state components handler render-handler (set keys)))))
+   (create-entity nil state components handler render-handler)))
+
+(defn typed-entity
+  ([type state components handler]
+   (typed-entity type state components handler nil))
+  ([type state components handler render-handler]
+   (when (nil? type)
+     (fail! "Typed entities require a non-nil type" {:type type}))
+   (create-entity type state components handler render-handler)))
 
 (defn- update-component
   [state context message {:keys [key handler]}]
@@ -156,6 +171,10 @@
 (defn state
   [{:keys [state]}]
   state)
+
+(defn entity-type
+  [{:keys [type]}]
+  type)
 
 (defn components
   [{:keys [components]}]

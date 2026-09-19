@@ -1,5 +1,6 @@
 (ns morphe.runtime-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.edn :as edn]
+            [clojure.test :refer [deftest is testing]]
             [morphe.core :as game]))
 
 (defn- inert-entity
@@ -16,10 +17,17 @@
   [state []])
 
 (deftest public-api-keeps-documentation-and-argument-lists
-  (doseq [public-var [#'game/game #'game/entity #'game/component #'game/add-entity
-                      #'game/get-entity #'game/entity-state #'game/entity-components
-                      #'game/event #'game/send #'game/broadcast #'game/effect
-                      #'game/step #'game/render-data #'game/dispatch-effects!]]
+  (doseq [public-var [#'game/game #'game/entity #'game/typed-entity
+                      #'game/component #'game/add-entity #'game/remove-entity
+                      #'game/replace-entity #'game/update-context
+                      #'game/replace-scene #'game/get-entity #'game/entity-state
+                      #'game/entity-type #'game/entity-components #'game/event
+                      #'game/send #'game/broadcast #'game/effect #'game/spawn
+                      #'game/despawn #'game/replace-entity-command
+                      #'game/set-context #'game/assoc-context
+                      #'game/dissoc-context #'game/switch-scene
+                      #'game/step #'game/render-data #'game/snapshot
+                      #'game/restore #'game/dispatch-effects!]]
     (let [{:keys [doc arglists]} (meta public-var)]
       (is (seq doc))
       (is (seq arglists)))))
@@ -49,6 +57,7 @@
         source (fn [_context _dt] [(game/event :recorder [:tick])])
         result (game/step initial [source] 0.1
                           [(game/event :recorder [:input])])]
+    (is (= #{:game :effects} (set (keys result))))
     (is (= [:input :tick]
            (-> result :game (game/get-entity :recorder)
                game/entity-state :messages)))))
@@ -66,7 +75,127 @@
                            (game/event :forwarder [:record :external])])]
     (is (= [:start :external :generated]
            (-> result :game (game/get-entity :forwarder)
-               game/entity-state :messages)))))
+                          game/entity-state :messages)))))
+
+(deftest direct-lifecycle-operations-preserve-order
+  (let [first-entity (inert-entity {:value 1})
+        replacement (inert-entity {:value 2})
+        second-entity (inert-entity {:value 3})
+        initial (-> (game/game {:level 1})
+                    (game/add-entity :first first-entity)
+                    (game/add-entity :second second-entity))
+        updated (-> initial
+                    (game/replace-entity :first replacement)
+                    (game/remove-entity :second)
+                    (game/update-context assoc :level 2))]
+    (is (= [:first] (:entity-order updated)))
+    (is (= {:value 2}
+           (-> updated (game/get-entity :first) game/entity-state)))
+    (is (= {:level 2} (:context updated)))
+    (is (= [:first :second] (:entity-order initial)))
+    (is (thrown? clojure.lang.ExceptionInfo
+                 (game/remove-entity updated :missing)))
+    (is (thrown? clojure.lang.ExceptionInfo
+                 (game/replace-entity updated :missing replacement)))
+    (is (thrown? clojure.lang.ExceptionInfo
+                 (game/update-context updated (constantly :invalid))))))
+
+(deftest lifecycle-commands-apply-after-current-event-delivery
+  (let [newcomer (game/entity {} []
+                              (fn [state _context _message]
+                                [state [(game/effect [:trace :newcomer])]]))
+        replacement (inert-entity {:replaced true})
+        controller (game/entity {} []
+                                (fn [state _context _message]
+                                  [state [(game/despawn :observer)
+                                          (game/replace-entity-command
+                                            :controller replacement)
+                                          (game/spawn :newcomer newcomer)]]))
+        observer (game/entity {} []
+                              (fn [state _context _message]
+                                [state [(game/effect [:trace :observer])]]))
+        initial (-> (game/game)
+                    (game/add-entity :controller controller)
+                    (game/add-entity :observer observer))
+        first-step (game/step initial [] 0.0 [(game/event [:change])])
+        second-step (game/step (:game first-step) [] 0.0
+                               [(game/event :newcomer [:trace])])]
+    (is (= [[:trace :observer]] (:effects first-step)))
+    (is (= [:controller :newcomer] (-> first-step :game :entity-order)))
+    (is (= {:replaced true}
+           (-> first-step :game (game/get-entity :controller)
+               game/entity-state)))
+    (is (= [[:trace :newcomer]] (:effects second-step)))))
+
+(deftest context-commands-affect-the-next-queued-event
+  (let [value (game/entity {:seen []} []
+                           (fn [state context [message-type]]
+                             (case message-type
+                               :change [state [(game/assoc-context :mode :play)
+                                               (game/assoc-context :score 10)
+                                               (game/dissoc-context :obsolete)
+                                               (game/send :controller [:observe])]]
+                               :observe [(update state :seen conj (:mode context)) []]
+                               [state []])))
+        initial (game/add-entity
+                  (game/game {:mode :menu :obsolete true})
+                  :controller value)
+        result (game/step initial [] 0.0
+                          [(game/event :controller [:change])])]
+    (is (= {:mode :play :score 10} (-> result :game :context)))
+    (is (= [:play]
+           (-> result :game (game/get-entity :controller)
+               game/entity-state :seen)))))
+
+(deftest scenes-replace-context-and-entity-order
+  (let [next-entity (inert-entity {:scene :next})
+        controller (game/entity {} []
+                                (fn [state _context _message]
+                                  [state [(game/switch-scene
+                                            {:scene :next}
+                                            [[:next next-entity]])]]))
+        initial (game/add-entity (game/game {:scene :first})
+                                 :controller controller)
+        switched (:game (game/step initial [] 0.0
+                                   [(game/event :controller [:switch])]))
+        direct (game/replace-scene initial {:scene :direct}
+                                   [[:next next-entity]])]
+    (is (= {:scene :next} (:context switched)))
+    (is (= [:next] (:entity-order switched)))
+    (is (= {:scene :direct} (:context direct)))
+    (is (= [:next] (:entity-order direct)))))
+
+(deftest snapshots-restore-typed-entity-state
+  (letfn [(counter [state]
+            (game/typed-entity
+              :counter state []
+              (fn [current _context [_ amount]]
+                [(update current :total + amount) []])))]
+    (let [initial (-> (game/game {:level 2})
+                      (game/add-entity :first (counter {:total 1}))
+                      (game/add-entity :second (counter {:total 4})))
+          advanced (:game (game/step initial [] 0.0
+                                     [(game/event :first [:add 5])]))
+          saved (game/snapshot advanced)
+          serialized (pr-str saved)
+          restored (game/restore (edn/read-string serialized)
+                                 {:counter counter})]
+      (is (= {:morphe.snapshot/version 1
+              :context {:level 2}
+              :entities [{:id :first :type :counter :state {:total 6}}
+                         {:id :second :type :counter :state {:total 4}}]}
+             saved))
+      (is (= saved (edn/read-string serialized)))
+      (is (= [:first :second] (:entity-order restored)))
+      (is (= 6 (-> restored (game/get-entity :first)
+                   game/entity-state :total)))
+      (is (= :counter
+             (-> restored (game/get-entity :first) game/entity-type)))
+      (is (thrown? clojure.lang.ExceptionInfo
+                   (game/restore saved {})))))
+  (is (thrown? clojure.lang.ExceptionInfo
+               (game/snapshot
+                 (game/add-entity (game/game) :plain (inert-entity))))))
 
 (deftest components-own-one-namespaced-state-key
   (let [score-key ::score

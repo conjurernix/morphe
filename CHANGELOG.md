@@ -4,6 +4,20 @@ All notable changes to Morphe are recorded here. The project follows [Keep a Cha
 
 ## [Unreleased]
 
+### Added
+
+- Added deterministic entity lifecycle, context, and scene commands.
+- Added direct immutable entity, context, and scene operations.
+- Added typed entity snapshots restored through application factories.
+- Added fixed-timestep scheduling with bounded catch-up and render interpolation.
+- Added application events and controls for quit, pause, focus, resize, and fatal errors.
+- Added versioned replay recordings and cross-platform deterministic random state.
+- Added the LWJGL desktop adapter and a platformer validation game.
+- Replaced immediate-mode LWJGL drawing with shader-based VBO batches and atlas regions.
+- Added classpath image assets with deduplicated loading and deterministic native cleanup.
+- Added stable keyboard, text, mouse, wheel, and standard gamepad input frames.
+- Added OpenAL static Ogg playback with gain, pitch, looping, pause, and cleanup.
+
 ## [0.2.0] - 2026-09-18
 
 ### Changed

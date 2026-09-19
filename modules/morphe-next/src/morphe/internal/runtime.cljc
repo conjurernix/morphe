@@ -3,6 +3,15 @@
             [morphe.internal.event :as event]))
 
 (def default-max-events 10000)
+(def snapshot-version 1)
+
+(def spawn-tag ::spawn)
+(def despawn-tag ::despawn)
+(def replace-entity-tag ::replace-entity)
+(def set-context-tag ::set-context)
+(def assoc-context-tag ::assoc-context)
+(def dissoc-context-tag ::dissoc-context)
+(def switch-scene-tag ::switch-scene)
 
 (defn- fail!
   [message data]
@@ -47,15 +56,114 @@
       (assoc-in [:entities entity-id] entity-value)
       (update :entity-order conj entity-id)))
 
+(defn remove-entity
+  [{:keys [entities] :as game} entity-id]
+  (validate-game! game)
+  (when-not (contains? entities entity-id)
+    (fail! "Entity ID is not registered" {:entity-id entity-id}))
+  (-> game
+      (update :entities dissoc entity-id)
+      (update :entity-order (fn [order]
+                              (into [] (remove #(= entity-id %)) order)))))
+
+(defn replace-entity
+  [{:keys [entities] :as game} entity-id entity-value]
+  (validate-game! game)
+  (when-not (contains? entities entity-id)
+    (fail! "Entity ID is not registered" {:entity-id entity-id}))
+  (when-not (entity/entity? entity-value)
+    (fail! "Entities must be created with entity" {:entity-id entity-id
+                                                    :value entity-value}))
+  (assoc-in game [:entities entity-id] entity-value))
+
+(defn update-context
+  [{:keys [context] :as game} f & args]
+  (validate-game! game)
+  (when-not (fn? f)
+    (fail! "Context updater must be a function" {:value f}))
+  (let [next-context (apply f context args)]
+    (when-not (map? next-context)
+      (fail! "Context updater must return a map" {:value next-context}))
+    (assoc game :context next-context)))
+
+(defn- validate-entity-entries!
+  [entity-entries]
+  (when-not (sequential? entity-entries)
+    (fail! "Scene entities must be sequential ID and entity pairs"
+           {:value entity-entries}))
+  (doseq [entry entity-entries]
+    (when-not (and (vector? entry) (= 2 (count entry)))
+      (fail! "Scene entities must be ID and entity pairs" {:value entry})))
+  entity-entries)
+
+(defn replace-scene
+  ([context entity-entries]
+   (validate-entity-entries! entity-entries)
+   (reduce (fn [next-game [entity-id entity-value]]
+             (add-entity next-game entity-id entity-value))
+           (game context)
+           entity-entries))
+  ([current-game context entity-entries]
+   (validate-game! current-game)
+   (replace-scene context entity-entries)))
+
 (defn get-entity
   [{:keys [entities] :as game} entity-id]
   (validate-game! game)
   (get entities entity-id))
 
+(defn spawn
+  [entity-id entity-value]
+  (when (nil? entity-id)
+    (fail! "Entity IDs must be non-nil" {:entity-id entity-id}))
+  (when-not (entity/entity? entity-value)
+    (fail! "Entities must be created with entity" {:entity-id entity-id
+                                                    :value entity-value}))
+  [spawn-tag entity-id entity-value])
+
+(defn despawn
+  [entity-id]
+  (when (nil? entity-id)
+    (fail! "Entity IDs must be non-nil" {:entity-id entity-id}))
+  [despawn-tag entity-id])
+
+(defn replace-entity-command
+  [entity-id entity-value]
+  (when (nil? entity-id)
+    (fail! "Entity IDs must be non-nil" {:entity-id entity-id}))
+  (when-not (entity/entity? entity-value)
+    (fail! "Entities must be created with entity" {:entity-id entity-id
+                                                    :value entity-value}))
+  [replace-entity-tag entity-id entity-value])
+
+(defn set-context
+  [context]
+  (when-not (map? context)
+    (fail! "Game context must be a map" {:value context}))
+  [set-context-tag context])
+
+(defn assoc-context
+  [key value]
+  [assoc-context-tag key value])
+
+(defn dissoc-context
+  [key]
+  [dissoc-context-tag key])
+
+(defn switch-scene
+  [context entity-entries]
+  (when-not (map? context)
+    (fail! "Game context must be a map" {:value context}))
+  (validate-entity-entries! entity-entries)
+  [switch-scene-tag context (vec entity-entries)])
+
 (defn- render-entity-data
   [{:keys [context entities]} entity-id render-context]
   (try
-    (entity/render-entity (get entities entity-id) context render-context)
+    (entity/render-entity
+      (get entities entity-id)
+      context
+      (assoc render-context :morphe.render/entity-id entity-id))
     (catch #?(:clj clojure.lang.ExceptionInfo
    :cljs cljs.core/ExceptionInfo) cause
       (throw (ex-info (.getMessage cause)
@@ -90,6 +198,21 @@
                                   (event/message? value))
            ::event/effect (and (= 2 (count output))
                                (event/effect-value? value))
+           ::spawn (and (= 3 (count output))
+                        (some? value)
+                        (entity/entity? message))
+           ::despawn (and (= 2 (count output))
+                          (some? value))
+           ::replace-entity (and (= 3 (count output))
+                                 (some? value)
+                                 (entity/entity? message))
+           ::set-context (and (= 2 (count output))
+                              (map? value))
+           ::assoc-context (= 3 (count output))
+           ::dissoc-context (= 2 (count output))
+           ::switch-scene (and (= 3 (count output))
+                               (map? value)
+                               (sequential? message))
            false))))
 
 (defn- route-output
@@ -102,7 +225,36 @@
                            (event/event value message))
       ::event/broadcast (update result :queue conj
                                 (event/event value))
-      ::event/effect (update result :effects conj value))))
+      ::event/effect (update result :effects conj value)
+      (update result :commands (fnil conj []) output))))
+
+(defn- apply-command
+  [result [command-type value argument :as command]]
+  (try
+    (case command-type
+      ::spawn (update result :game add-entity value argument)
+      ::despawn (update result :game remove-entity value)
+      ::replace-entity (update result :game replace-entity value argument)
+      ::set-context (assoc-in result [:game :context] value)
+      ::assoc-context (assoc-in result [:game :context value] argument)
+      ::dissoc-context (update-in result [:game :context] dissoc value)
+      ::switch-scene (assoc result :game (replace-scene value argument)))
+    (catch #?(:clj clojure.lang.ExceptionInfo
+              :cljs cljs.core/ExceptionInfo) cause
+      (throw (ex-info (.getMessage cause)
+                      (assoc (ex-data cause) :phase :command :command command)
+                      cause)))
+    (catch #?(:clj Throwable :cljs :default) cause
+      (throw (ex-info "Game command failed"
+                      {:phase :command :command command}
+                      cause)))))
+
+(defn- apply-commands
+  [result]
+  (if (seq (:commands result))
+    (-> (reduce apply-command result (:commands result))
+        (dissoc :commands))
+    result))
 
 (defn- update-target
   [{{:keys [context entities]} :game :as result} entity-id message runtime-event]
@@ -154,7 +306,9 @@
                              :event (peek queue)})))
           (let [next-event (peek queue)
                 without-event (update current :queue pop)]
-            (recur (deliver-event without-event next-event) (inc processed))))))))
+            (recur (-> (deliver-event without-event next-event)
+                       apply-commands)
+                   (inc processed))))))))
 
 (defn- finite-nonnegative-number?
   [value]
@@ -206,6 +360,68 @@
                            :cljs cljs.core/PersistentQueue.EMPTY)
                      (concat external-events source-events))]
      (drain {:game game :queue queue :effects []} max-events))))
+
+(defn snapshot
+  [{:keys [context entity-order entities] :as game}]
+  (validate-game! game)
+  {:morphe.snapshot/version snapshot-version
+   :context context
+   :entities
+   (mapv (fn [entity-id]
+           (let [entity-value (get entities entity-id)
+                 entity-type (entity/entity-type entity-value)]
+             (when (nil? entity-type)
+               (fail! "Snapshots require typed entities"
+                      {:entity-id entity-id}))
+             {:id entity-id
+              :type entity-type
+              :state (entity/state entity-value)}))
+         entity-order)})
+
+(defn restore
+  [{version :morphe.snapshot/version
+    :keys [context entities]
+    :as snapshot-value}
+   factories]
+  (when-not (and (map? snapshot-value)
+                 (= snapshot-version version)
+                 (map? context)
+                 (vector? entities))
+    (fail! "Snapshot is malformed or has an unsupported version"
+           {:value snapshot-value}))
+  (when-not (map? factories)
+    (fail! "Snapshot factories must be a map" {:value factories}))
+  (reduce
+    (fn [restored {:keys [id type state] :as saved-entity}]
+      (when-not (and (map? saved-entity) (some? id) (some? type) (map? state))
+        (fail! "Snapshot entity is malformed" {:value saved-entity}))
+      (let [factory (get factories type)]
+        (when-not (fn? factory)
+          (fail! "No snapshot factory is registered for entity type"
+                 {:entity-id id :entity-type type}))
+        (try
+          (let [entity-value (factory state)]
+            (when-not (and (entity/entity? entity-value)
+                           (= type (entity/entity-type entity-value)))
+              (fail! "Snapshot factories must return a matching typed entity"
+                     {:entity-id id :entity-type type :value entity-value}))
+            (add-entity restored id entity-value))
+          (catch #?(:clj clojure.lang.ExceptionInfo
+                    :cljs cljs.core/ExceptionInfo) cause
+            (throw (ex-info (.getMessage cause)
+                            (assoc (ex-data cause)
+                                   :phase :restore
+                                   :entity-id id
+                                   :entity-type type)
+                            cause)))
+          (catch #?(:clj Throwable :cljs :default) cause
+            (throw (ex-info "Snapshot factory failed"
+                            {:phase :restore
+                             :entity-id id
+                             :entity-type type}
+                            cause))))))
+    (game context)
+    entities))
 
 (defn dispatch-effects!
   [handlers effects]

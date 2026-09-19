@@ -16,7 +16,19 @@
            [(game/event :player [:player/move 10])])
 ```
 
-Run this module's tests with `clojure -M:test`.
+Handlers can return `spawn`, `despawn`, `replace-entity-command`, context, and scene commands. Commands apply after the current event delivery.
+
+Use `typed-entity`, `snapshot`, and `restore` when game state must be saved. Restore factories rebuild handlers from each entity's saved state.
+
+`morphe.fixed-step` provides a pure accumulator with configurable update rate, catch-up limit, frame-time clamp, interpolation alpha, and replay tick records.
+
+`morphe.application` reduces quit, focus, and resize events into immutable state. Application callbacks may emit mapped game events and quit, pause, resume, or close-cancellation controls.
+
+`morphe.replay` records mapped events by tick and verifies the final snapshot during playback. `morphe.random` provides snapshot-safe deterministic random state.
+
+`morphe.collision` provides pure center-based AABBs, uniform-grid spatial indexes, overlap queries, and ray casts. Build an index once for stable world geometry, then query it during simulation.
+
+Run this module's Clojure tests with `clojure -M:test`. Run the ClojureScript runtime smoke test with `clojure -M:test-cljs`.
 
 ## Benchmark
 
