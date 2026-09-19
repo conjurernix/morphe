@@ -6,13 +6,13 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib-modules
-  {:core {:lib 'io.github.nikolaspafitis/morphe.core
+  {:core {:lib 'io.github.conjurernix/morphe.core
           :dir "modules/morphe-next"
           :description "Purely functional, event-driven game state engine for Clojure"}
-   :quil {:lib 'io.github.nikolaspafitis/morphe.quil
+   :quil {:lib 'io.github.conjurernix/morphe.quil
                :dir "modules/morphe-next-quil"
                :description "Quil adapter for the Morphe game state engine"}
-   :lwjgl {:lib 'io.github.nikolaspafitis/morphe.lwjgl
+   :lwjgl {:lib 'io.github.conjurernix/morphe.lwjgl
            :dir "modules/morphe-next-lwjgl"
            :description "LWJGL adapter for the Morphe game state engine"}})
 
@@ -20,9 +20,9 @@
   ["modules/morphe-next" "modules/morphe-next-quil" "modules/morphe-next-lwjgl"])
 
 (def local->mvn-internal
-  {'morphe/core 'io.github.nikolaspafitis/morphe.core
-   'morphe/quil 'io.github.nikolaspafitis/morphe.quil
-   'morphe/lwjgl 'io.github.nikolaspafitis/morphe.lwjgl})
+  {'morphe/core 'io.github.conjurernix/morphe.core
+   'morphe/quil 'io.github.conjurernix/morphe.quil
+   'morphe/lwjgl 'io.github.conjurernix/morphe.lwjgl})
 
 (defn compute-version
   "Derives a version from the explicit option or the latest Git tag."
@@ -185,9 +185,9 @@
   "Requires each installed artifact through its published Maven coordinate."
   [opts]
   (let [version (compute-version opts)
-        checks [['io.github.nikolaspafitis/morphe.core 'morphe.core]
-                ['io.github.nikolaspafitis/morphe.quil 'morphe.adapters.quil]
-                ['io.github.nikolaspafitis/morphe.lwjgl 'morphe.adapters.lwjgl]]]
+        checks [['io.github.conjurernix/morphe.core 'morphe.core]
+                ['io.github.conjurernix/morphe.quil 'morphe.adapters.quil]
+                ['io.github.conjurernix/morphe.lwjgl 'morphe.adapters.lwjgl]]]
     (doseq [[lib namespace] checks]
       (run-command!
         (str "Requiring " namespace " from its installed artifact")
